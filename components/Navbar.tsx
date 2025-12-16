@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Menu, X, Crosshair } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface NavbarProps {
   isScrolled: boolean;
@@ -10,14 +11,13 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled || isOpen ? 'bg-slate-950/90 backdrop-blur-md border-b border-white/10' : 'bg-transparent'
-      }`}
+      className={`fixed w-full z-50 transition-all duration-300 ${isScrolled || isOpen ? 'bg-slate-950/90 backdrop-blur-md border-b border-white/10' : 'bg-transparent'
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex-shrink-0 flex items-center space-x-2 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+          <div className="flex-shrink-0 flex items-center space-x-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
             <Crosshair className="h-8 w-8 text-brand-400" />
             <span className="font-bold text-xl tracking-tight text-white">
               GameCoach<span className="text-brand-400"> AI</span>
@@ -30,9 +30,13 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
               <a href="#features" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Features</a>
               <a href="#ai-tech" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">How it Works</a>
               <a href="#audience" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">For You</a>
-              <button className="bg-brand-600 hover:bg-brand-500 text-white px-5 py-2 rounded-full text-sm font-semibold transition-all shadow-[0_0_15px_rgba(20,184,166,0.5)]">
+              <Link to="/login" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Login</Link>
+              <Link
+                to="/signup"
+                className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 rounded-lg font-medium transition-all hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] hover:-translate-y-0.5"
+              >
                 Get Early Access
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -55,9 +59,10 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
             <a href="#features" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Features</a>
             <a href="#ai-tech" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>How it Works</a>
             <a href="#audience" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Who is it for?</a>
-            <button className="w-full text-left bg-brand-600 text-white px-3 py-3 rounded-md text-base font-medium mt-4">
+            <Link to="/login" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Login</Link>
+            <Link to="/signup" className="w-full text-left bg-brand-600 text-white px-3 py-3 rounded-md text-base font-medium mt-4 block" onClick={() => setIsOpen(false)}>
               Get Early Access
-            </button>
+            </Link>
           </div>
         </div>
       )}

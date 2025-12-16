@@ -7,6 +7,7 @@ interface FeatureCardProps {
   description: string;
 }
 
+
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description }) => (
   <div className="glass-card p-8 rounded-2xl hover:border-brand-500/50 transition-colors duration-300 group">
     <div className="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center mb-6 group-hover:bg-brand-500/20 transition-colors">
