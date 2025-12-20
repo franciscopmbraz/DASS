@@ -1,0 +1,134 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Message } from '../types';
+import { Send, Bot, User as UserIcon, Loader2 } from 'lucide-react';
+import { geminiService } from '../services/geminiService';
+
+interface ChatWidgetProps {
+    initialMessage?: string;
+}
+
+const ChatWidget: React.FC<ChatWidgetProps> = ({ initialMessage }) => {
+    const [messages, setMessages] = useState<Message[]>([
+        {
+            id: '1',
+            role: 'model',
+            content: initialMessage || "Hello! I've analyzed your gameplay. What would you like to know specifically?",
+            timestamp: Date.now()
+        }
+    ]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const handleSend = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim() || isLoading) return;
+
+        const userMessage: Message = {
+            id: Date.now().toString(),
+            role: 'user',
+            content: input,
+            timestamp: Date.now()
+        };
+
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsLoading(true);
+
+        try {
+            // Get response from Gemini
+            const response = await geminiService.chat(input, messages);
+
+            const botMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'model',
+                content: response,
+                timestamp: Date.now()
+            };
+
+            setMessages(prev => [...prev, botMessage]);
+        } catch (error) {
+            console.error("Chat error:", error);
+            const errorMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'model',
+                content: "I'm sorry, I encountered an error. Please try again.",
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-[600px] glass-card rounded-xl border border-white/10 overflow-hidden">
+            <div className="p-4 border-b border-white/10 bg-black/20">
+                <h3 className="text-lg font-bold text-white flex items-center">
+                    <Bot className="w-5 h-5 mr-2 text-brand-400" />
+                    AI Coach Assistant
+                </h3>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((msg) => (
+                    <div
+                        key={msg.id}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                        <div
+                            className={`max-w-[80%] rounded-2xl p-4 flex items-start ${msg.role === 'user'
+                                    ? 'bg-brand-600 text-white rounded-br-none'
+                                    : 'bg-slate-800/80 text-slate-200 rounded-bl-none border border-white/5'
+                                }`}
+                        >
+                            <div className={`p-1 rounded-full mr-3 mt-1 flex-shrink-0 ${msg.role === 'user' ? 'bg-white/20' : 'bg-brand-500/20'
+                                }`}>
+                                {msg.role === 'user' ? <UserIcon size={14} /> : <Bot size={14} className="text-brand-400" />}
+                            </div>
+                            <div className="leading-relaxed text-sm">
+                                {msg.content}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                {isLoading && (
+                    <div className="flex justify-start">
+                        <div className="bg-slate-800/80 p-4 rounded-2xl rounded-bl-none border border-white/5 flex items-center space-x-2">
+                            <Loader2 className="w-4 h-4 text-brand-400 animate-spin" />
+                            <span className="text-slate-400 text-sm">Thinking...</span>
+                        </div>
+                    </div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            <form onSubmit={handleSend} className="p-4 border-t border-white/10 bg-black/20 flex gap-2">
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask about your gameplay..."
+                    className="flex-1 bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all placeholder-slate-500"
+                />
+                <button
+                    type="submit"
+                    disabled={isLoading || !input.trim()}
+                    className="bg-brand-600 hover:bg-brand-500 text-white p-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Send className="w-5 h-5" />
+                </button>
+            </form>
+        </div>
+    );
+};
+
+export default ChatWidget;
