@@ -20,6 +20,8 @@ const Dashboard: React.FC = () => {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [analysisStatus, setAnalysisStatus] = useState("Analyzing Gameplay...");
+    const [selectedGame, setSelectedGame] = useState<string>("Auto-Detect");
 
     // Check Auth
     useEffect(() => {
@@ -67,12 +69,19 @@ const Dashboard: React.FC = () => {
         setError(null);
 
         try {
-            const result = await geminiService.analyzeVideo(videoFile, "Analyze this Valorant gameplay.");
+            const prompt = selectedGame === "Auto-Detect"
+                ? "Analyze this gameplay footage. Identify the game being played and provide coaching analysis relevant to that specific game's mechanics and strategy."
+                : `Analyze this ${selectedGame} gameplay.`;
+
+            const result = await geminiService.analyzeVideo(videoFile, prompt, (status) => {
+                setAnalysisStatus(status);
+            });
             setAnalysisResult(result);
         } catch (err: any) {
             setError(err.message || "Failed to analyze video.");
         } finally {
             setIsAnalyzing(false);
+            setAnalysisStatus("Analyzing Gameplay...");
         }
     };
 
@@ -168,10 +177,31 @@ const Dashboard: React.FC = () => {
                             )}
 
                             {!analysisResult && !isAnalyzing && (
-                                <div className="flex justify-end">
+                                <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+                                    <div className="relative w-full sm:w-64">
+                                        <select
+                                            value={selectedGame}
+                                            onChange={(e) => setSelectedGame(e.target.value)}
+                                            className="w-full appearance-none bg-slate-900 border border-slate-700 text-white py-4 px-4 pr-8 rounded-xl focus:outline-none focus:border-brand-500 cursor-pointer text-base"
+                                        >
+                                            <option value="Auto-Detect">Auto-Detect Game</option>
+                                            <option value="League of Legends">League of Legends</option>
+                                            <option value="Valorant">Valorant</option>
+                                            <option value="CS2">Counter-Strike 2</option>
+                                            <option value="Overwatch 2">Overwatch 2</option>
+                                            <option value="Dota 2">Dota 2</option>
+                                            <option value="Fortnite">Fortnite</option>
+                                            <option value="Apex Legends">Apex Legends</option>
+                                            <option value="Rocket League">Rocket League</option>
+                                        </select>
+                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white/50">
+                                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                                        </div>
+                                    </div>
+
                                     <button
                                         onClick={startAnalysis}
-                                        className="flex items-center px-8 py-4 bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white rounded-xl font-bold text-lg shadow-xl shadow-brand-500/20 transition-all hover:scale-[1.02]"
+                                        className="w-full sm:w-auto flex items-center justify-center px-8 py-4 bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-500 hover:to-accent-500 text-white rounded-xl font-bold text-lg shadow-xl shadow-brand-500/20 transition-all hover:scale-[1.02]"
                                     >
                                         <Play className="w-5 h-5 mr-2 fill-current" />
                                         Start Analysis
@@ -182,7 +212,7 @@ const Dashboard: React.FC = () => {
                             {isAnalyzing && (
                                 <div className="glass-card p-8 rounded-xl border border-brand-500/30 text-center animate-pulse">
                                     <Loader2 className="w-12 h-12 text-brand-400 animate-spin mx-auto mb-4" />
-                                    <h3 className="text-xl font-bold text-white mb-2">Analyzing Gameplay...</h3>
+                                    <h3 className="text-xl font-bold text-white mb-2">{analysisStatus}</h3>
                                     <p className="text-slate-400">Our AI coach is reviewing your footage. This may take a moment.</p>
                                 </div>
                             )}

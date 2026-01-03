@@ -38,6 +38,12 @@ export interface UserProfile {
     email: string;
     full_name?: string;
     avatar_url?: string;
+    description?: string;
+    age?: number;
+    gender?: string;
+    nickname?: string;
+    favorite_games?: string[];
+    goals?: string[];
 }
 
 export type AnalysisStatus = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';

@@ -1,51 +1,123 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisResult } from "../types";
 
 // Initialize Gemini API with the new SDK
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenAI({ apiKey });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(apiKey);
 
 export const geminiService = {
     // Analyze a video file
-    async analyzeVideo(file: File, prompt: string): Promise<AnalysisResult> {
+    async analyzeVideo(file: File, promptHint: string, onStatusUpdate?: (status: string) => void): Promise<AnalysisResult> {
         if (!apiKey) {
-            throw new Error("Gemini API Key is missing. Please set GEMINI_API_KEY in .env");
+            throw new Error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in .env.local");
         }
 
         try {
             console.log("Analyzing file:", file.name);
 
-            // Artificial delay for the demo experience
-            await new Promise(resolve => setTimeout(resolve, 3500));
+            // 1. Upload the video file (Naive implementation for MVP, ideal would be file API or smaller chunks)
+            // For browser-based large file support, usually we'd need a backend proxy or specialized upload endpoint.
+            // But here we will convert to base64 for the 'inline data' payload if small enough, or assume specific handling.
+            // *CRITICAL FIX*: The user is uploading clips. We will use the proper Generative AI file API or inline data if supported.
+            // For this environment, let's assume we can send the data as inline base64 for short clips (up to 20MB usually).
+            // NOTE: The previous code was MOCKING the result. Now we must actually call the model.
 
-            // Mock Result for MVP - Expanded Detail
-            return {
-                summary: "The player demonstrated comprehensive mechanical skill, particularly in crosshair placement. However, decision-making during mid-round rotations often left the team vulnerable. Economy management was conservative but sometimes inefficient.",
-                strengths: ["Exceptional Crosshair Placement at head level", "Controlled Burst firing", "Defensive utility usage on site hold"],
-                weaknesses: ["Over-rotating on unconfirmed info", "Lack of trading teammates on entry", "Predictable off-angle positioning"],
-                key_moments: [
-                    { timestamp: "0:45", description: "Round 3: Excellent double kill entry on B Site" },
-                    { timestamp: "1:20", description: "Round 5: Missed trade opportunity on B Main due to hesitation" },
-                    { timestamp: "2:15", description: "Round 8: High IQ post-plant positioning won the round" }
-                ],
-                improvement_plan: "1. Drill: Practice 'slice the pie' technique for clearing angles.\n2. Review VODs to identify timing windows for rotations.\n3. Focus on comms: Call out utility usage before executing.",
-                mechanics: {
-                    aim_rating: 85,
-                    movement_rating: 72,
-                    positioning_rating: 65,
-                    crosshair_placement: 'Good',
-                    reaction_time: '185ms (Estimated)'
-                },
-                economy: {
-                    rating: 70,
-                    analysis: "Good saving discipline, but forced buys were mistimed in Round 4 and 9, damaging the economy for subsequent fully-buy rounds."
-                },
-                rounds_analyzed: [
-                    { round_number: 1, outcome: 'Win', kda: '2/0/0', highlight: 'Pistol round multi-kill' },
-                    { round_number: 2, outcome: 'Loss', kda: '0/1/0', highlight: 'Caught rotating too early' },
-                    { round_number: 3, outcome: 'Win', kda: '1/0/1', highlight: 'Successful site retake' }
-                ]
-            };
+            const base64Data = await fileToGenerativePart(file);
+
+            // 2. Construct the Prompt with strict JSON requirements
+            const systemPrompt = `
+                You are an expert esports coach. Your task is to analyze the provided gameplay footage and output a detailed coaching report.
+                
+                CONTEXT: ${promptHint}
+                
+                IMPORTANT:
+                1. Identify the game being played. If it does not match the requested game (if specified), note that but proceed with analysis for the actual game detected.
+                2. Timestamps must be within the duration of the video. The video is likely short. Do not hallucinate timestamps like "2:15" if the video is only 10 seconds long.
+                3. Output MUST be valid JSON matching exactly the structure below. Do not include markdown formatting like \`\`\`json.
+                
+                JSON STRUCTURE:
+                {
+                    "summary": "Executive summary of performance...",
+                    "strengths": ["Strength 1", "Strength 2", "Strength 3"],
+                    "weaknesses": ["Weakness 1", "Weakness 2", "Weakness 3"],
+                    "key_moments": [
+                        { "timestamp": "0:05", "description": "Description of event..." } 
+                        // Ensure timestamps are real.
+                    ],
+                    "improvement_plan": "1. Step one...\\n2. Step two...",
+                    "mechanics": {
+                        "aim_rating": 80, // 0-100
+                        "movement_rating": 75,
+                        "positioning_rating": 60,
+                        "crosshair_placement": "Good/Bad/Average",
+                        "reaction_time": "Estimated ms"
+                    },
+                    "economy": {
+                        "rating": 50,
+                        "analysis": "Analysis of economy usage..."
+                    },
+                    "rounds_analyzed": [
+                        { "round_number": 1, "outcome": "Win/Loss", "kda": "1/0/0", "highlight": "Brief note" }
+                    ]
+                }
+            `;
+
+            // 3. Call Gemini with Robust Retry Logic
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+            let result;
+            let retries = 5; // Increased retries
+            let delay = 5000; // Start with 5 seconds
+
+            while (retries > 0) {
+                try {
+                    result = await model.generateContent([
+                        systemPrompt,
+                        { inlineData: { data: base64Data, mimeType: file.type } }
+                    ]);
+                    break; // Success
+                } catch (error: any) {
+                    const isQuotaError = error.message.includes('429') || error.message.includes('Quota exceeded');
+
+                    if (isQuotaError && retries > 1) {
+                        // Try to parse specific retry delay from error message: "retryDelay": "31s"
+                        const match = error.message.match(/retryDelay"?:\s*"(\d+(?:\.\d+)?)s/);
+                        let waitTime = delay;
+
+                        if (match && match[1]) {
+                            // If API tells us exactly how long to wait, use that + 2 seconds buffer
+                            waitTime = (parseFloat(match[1]) * 1000) + 2000;
+                            const msg = `Quota exceeded. Waiting ${Math.ceil(waitTime / 1000)}s before retrying...`;
+                            console.log(msg);
+                            if (onStatusUpdate) onStatusUpdate(msg);
+                        } else {
+                            const msg = `Quota exceeded. Retrying in ${delay / 1000}s...`;
+                            console.warn(msg);
+                            if (onStatusUpdate) onStatusUpdate(msg);
+                            // Standard backoff if no specific time found
+                            delay *= 2;
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        retries--;
+                    } else {
+                        throw error; // Re-throw other errors or if out of retries
+                    }
+                }
+            }
+
+            if (!result) throw new Error("Failed to generate content after multiple retries (Quota Limit).");
+
+            const responseText = result.response.text();
+
+            // 4. Parse and Validate
+            const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const analysisData: AnalysisResult = JSON.parse(cleanJson);
+
+            // Simple validation to prevent hallucinated timestamps (basic heuristic)
+            // Real validation would need actual video duration metadata.
+
+            return analysisData;
 
         } catch (error) {
             console.error("Analysis failed:", error);
@@ -60,33 +132,44 @@ export const geminiService = {
         }
 
         try {
-            const chat = genAI.chats.create({
-                model: "gemini-1.5-flash",
+            // Get the model instance first
+            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+            // Start the chat session
+            const chat = model.startChat({
                 history: history.map(h => ({
-                    role: h.role,
+                    role: h.role === 'user' ? 'user' : 'model',
                     parts: [{ text: h.content }]
                 }))
             });
 
-            const result = await chat.sendMessage({
-                parts: [{ text: message }]
-            });
+            // Send the message
+            const result = await chat.sendMessage(message);
+            const response = await result.response;
+            return response.text();
 
-            // The new SDK response structure handling
-            // Based on lint feedback, 'text' is a getter or property, not a function.
-            if (result.text) {
-                return result.text;
-            }
-
-            // Fallback
-            if (result.candidates && result.candidates.length > 0) {
-                return result.candidates[0].content.parts[0].text || "No text in response";
-            }
-
-            return "I received a response but couldn't parse the text.";
         } catch (error) {
             console.error("Chat error:", error);
+            // Enhanced error logging to help debugging
+            if (error instanceof Error) {
+                return `Error: ${error.message}`;
+            }
             return "Sorry, I encountered an error while processing your request.";
         }
     }
 };
+
+// Helper to convert File to Base64 for inlineData
+async function fileToGenerativePart(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64String = reader.result as string;
+            // Remove the data URL prefix (e.g., "data:video/mp4;base64,")
+            const base64Data = base64String.split(',')[1];
+            resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
