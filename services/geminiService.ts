@@ -25,24 +25,49 @@ export const geminiService = {
             const base64Data = await fileToGenerativePart(file);
 
             // 2. Construct the Prompt with strict JSON requirements
-            const systemPrompt = `
-                You are an expert esports coach. Your task is to analyze the provided gameplay footage and output a detailed coaching report.
-                
-                CONTEXT: ${promptHint}
-                
-                IMPORTANT:
-                1. Identify the game being played. If it does not match the requested game (if specified), note that but proceed with analysis for the actual game detected.
-                2. Timestamps must be within the duration of the video. The video is likely short. Do not hallucinate timestamps like "2:15" if the video is only 10 seconds long.
-                3. Output MUST be valid JSON matching exactly the structure below. Do not include markdown formatting like \`\`\`json.
-                
-                JSON STRUCTURE:
+            // Determine Game Type and appropriate JSON Structure
+            const isMoba = /league of legends|dota 2/i.test(promptHint);
+            const isFps = /valorant|cs2|counter[ -]strike|overwatch|apex|fortnite/i.test(promptHint);
+
+            let gameSpecificJson = "";
+
+            if (isMoba) {
+                gameSpecificJson = `
                 {
                     "summary": "Executive summary of performance...",
                     "strengths": ["Strength 1", "Strength 2", "Strength 3"],
                     "weaknesses": ["Weakness 1", "Weakness 2", "Weakness 3"],
                     "key_moments": [
                         { "timestamp": "0:05", "description": "Description of event..." } 
-                        // Ensure timestamps are real.
+                    ],
+                    "improvement_plan": "1. Step one...\\n2. Step two...",
+                    "mechanics": {
+                        "cs_rating": 80, // 0-100
+                        "trading_rating": 75,
+                        "skill_shots": "Good/Bad/Average",
+                        "combos": "Analysis of ability usage",
+                        "reaction_time": "Estimated ms"
+                    },
+                    "macro": {
+                        "vision_score_rating": 50,
+                        "map_awareness": "Good/Bad",
+                        "objective_control": "Analysis...",
+                        "rotation_quality": "Analysis..."
+                    },
+                    "phases_analyzed": [
+                        { "phase": "Laning", "performance": "Good/Bad", "notes": "..." },
+                        { "phase": "Teamfight", "performance": "...", "notes": "..." }
+                    ]
+                }`;
+            } else {
+                // Default / FPS Structure (Valorant, CS2, etc)
+                gameSpecificJson = `
+                {
+                    "summary": "Executive summary of performance...",
+                    "strengths": ["Strength 1", "Strength 2", "Strength 3"],
+                    "weaknesses": ["Weakness 1", "Weakness 2", "Weakness 3"],
+                    "key_moments": [
+                        { "timestamp": "0:05", "description": "Description of event..." } 
                     ],
                     "improvement_plan": "1. Step one...\\n2. Step two...",
                     "mechanics": {
@@ -54,16 +79,32 @@ export const geminiService = {
                     },
                     "economy": {
                         "rating": 50,
-                        "analysis": "Analysis of economy usage..."
+                        "analysis": "Analysis of economy/resource usage..."
                     },
                     "rounds_analyzed": [
                         { "round_number": 1, "outcome": "Win/Loss", "kda": "1/0/0", "highlight": "Brief note" }
                     ]
-                }
+                }`;
+            }
+
+            const systemPrompt = `
+                You are an expert esports coach. Your task is to analyze the provided gameplay footage and output a detailed coaching report.
+                
+                CONTEXT: ${promptHint}
+                
+                IMPORTANT:
+                1. Identify the game being played. If it does not match the requested game (if specified), note that but proceed with analysis for the actual game detected.
+                2. Timestamps must be within the duration of the video. The video is likely short. Do not hallucinate timestamps like "2:15" if the video is only 10 seconds long.
+                3. Output MUST be valid JSON matching exactly the structure below. Do not include markdown formatting like \`\`\`json.
+                
+                JSON STRUCTURE:
+                ${gameSpecificJson}
             `;
 
             // 3. Call Gemini with Robust Retry Logic
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+            // 3. Call Gemini with Robust Retry Logic
+            // Using gemini-2.5-flash per user request
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             let result;
             let retries = 5; // Increased retries
@@ -133,7 +174,8 @@ export const geminiService = {
 
         try {
             // Get the model instance first
-            const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+            // Get the model instance first
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             // Start the chat session
             const chat = model.startChat({
@@ -155,6 +197,80 @@ export const geminiService = {
                 return `Error: ${error.message}`;
             }
             return "Sorry, I encountered an error while processing your request.";
+        }
+    },
+
+    // Generate a personalized training plan
+    async generateTrainingPlan(game: string, answers: any): Promise<any> {
+        if (!apiKey) {
+            throw new Error("Gemini API Key is missing.");
+        }
+
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+            const prompt = `
+                Create a 4-week personalized esports training plan for ${game} based on the following player profile:
+                ${JSON.stringify(answers, null, 2)}
+
+                Output MUST be strict JSON with this structure:
+                {
+                    "weeks": [
+                        {
+                            "week_number": 1,
+                            "focus": "Theme of the week",
+                            "daily_routine": [
+                                { "day": "Monday", "activity": "...", "duration": "..." }
+                            ]
+                        }
+                    ],
+                    "tips": ["Tip 1", "Tip 2"]
+                }
+            `;
+
+            let result;
+            let retries = 3;
+            let delay = 2000;
+
+            while (retries > 0) {
+                try {
+                    result = await model.generateContent(prompt);
+                    break;
+                } catch (error: any) {
+                    const isQuotaError = error.message.includes('429') ||
+                        error.message.includes('Quota exceeded') ||
+                        error.message.includes('quota') ||
+                        error.message.includes('503');
+
+                    if (isQuotaError && retries > 1) {
+                        console.warn(`Quota exceeded. Retrying details in ${delay / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2;
+                        retries--;
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+
+            if (!result) throw new Error("Failed to generate plan due to high traffic (Quota). Please try again in a minute.");
+
+            const responseText = result.response.text();
+
+            // Robust JSON extraction
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+
+            if (jsonStart === -1 || jsonEnd === -1) {
+                console.error("Invalid JSON response:", responseText); // Log the raw response
+                throw new Error("Invalid JSON response from AI");
+            }
+
+            const cleanJson = responseText.substring(jsonStart, jsonEnd + 1);
+            return JSON.parse(cleanJson);
+        } catch (error) {
+            console.error("Training Generation failed:", error);
+            throw error;
         }
     }
 };

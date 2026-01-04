@@ -15,21 +15,43 @@ export interface AnalysisResult {
     }[];
     improvement_plan: string;
     mechanics: {
-        aim_rating: number; // 0-100
-        movement_rating: number; // 0-100
-        positioning_rating: number; // 0-100
-        crosshair_placement: 'Poor' | 'Average' | 'Good' | 'Excellent';
+        // FPS
+        aim_rating?: number; // 0-100
+        crosshair_placement?: 'Poor' | 'Average' | 'Good' | 'Excellent';
+
+        // MOBA
+        cs_rating?: number;
+        trading_rating?: number;
+        skill_shots?: string;
+        combos?: string;
+
+        // Shared
+        movement_rating?: number; // 0-100
+        positioning_rating?: number; // 0-100
         reaction_time?: string;
     };
-    economy: {
+    // FPS Specific
+    economy?: {
         rating: number; // 0-100
         analysis: string;
     };
-    rounds_analyzed: {
+    rounds_analyzed?: {
         round_number: number;
         outcome: 'Win' | 'Loss';
         kda: string;
         highlight: string;
+    }[];
+    // MOBA Specific
+    macro?: {
+        vision_score_rating: number;
+        map_awareness: string;
+        objective_control: string;
+        rotation_quality: string;
+    };
+    phases_analyzed?: {
+        phase: string;
+        performance: string;
+        notes: string;
     }[];
 }
 

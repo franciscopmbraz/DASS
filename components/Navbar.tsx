@@ -76,6 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-center space-x-8">
               <Link to="/dashboard" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Video Analyzer</Link>
+              <Link to="/training" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Training</Link>
               <a href="#features" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Features</a>
               <a href="#ai-tech" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">How it Works</a>
               <a href="#audience" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">For You</a>
@@ -135,6 +136,7 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
         <div className="md:hidden bg-slate-900 border-b border-white/10">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link to="/dashboard" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Video Analyser</Link>
+            <Link to="/training" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Training</Link>
             <a href="#features" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Features</a>
             <a href="#ai-tech" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>How it Works</a>
             <a href="#audience" className="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium" onClick={() => setIsOpen(false)}>Who is it for?</a>

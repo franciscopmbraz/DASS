@@ -46,77 +46,97 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ analysis }) => {
                         <Target className="w-5 h-5 mr-2" />
                         Mechanics Breakdown
                     </h3>
-                    <RatingBar label="Aim Accuracy" value={analysis.mechanics.aim_rating} color="blue" />
-                    <RatingBar label="Movement & Strafing" value={analysis.mechanics.movement_rating} color="indigo" />
-                    <RatingBar label="Positioning" value={analysis.mechanics.positioning_rating} color="purple" />
+
+                    {/* FPS Mechanics */}
+                    {analysis.mechanics.aim_rating !== undefined && (
+                        <RatingBar label="Aim Accuracy" value={analysis.mechanics.aim_rating} color="blue" />
+                    )}
+                    {analysis.mechanics.crosshair_placement && (
+                        <div className="mb-4">
+                            <span className="text-sm font-medium text-slate-300 block mb-1">Crosshair Placement</span>
+                            <span className="font-bold text-white bg-blue-500/20 px-2 py-1 rounded text-sm">{analysis.mechanics.crosshair_placement}</span>
+                        </div>
+                    )}
+
+                    {/* MOBA Mechanics */}
+                    {analysis.mechanics.cs_rating !== undefined && (
+                        <RatingBar label="CS & Farm Efficiency" value={analysis.mechanics.cs_rating} color="yellow" />
+                    )}
+                    {analysis.mechanics.trading_rating !== undefined && (
+                        <RatingBar label="Trading & Laning" value={analysis.mechanics.trading_rating} color="orange" />
+                    )}
+
+                    {/* Shared Mechanics */}
+                    {analysis.mechanics.movement_rating !== undefined && (
+                        <RatingBar label="Movement" value={analysis.mechanics.movement_rating} color="indigo" />
+                    )}
+                    {analysis.mechanics.positioning_rating !== undefined && (
+                        <RatingBar label="Positioning" value={analysis.mechanics.positioning_rating} color="purple" />
+                    )}
+
 
                     <div className="mt-6 pt-6 border-t border-white/10 grid grid-cols-2 gap-4">
-                        <div className="text-center p-3 bg-white/5 rounded-lg">
-                            <div className="text-xs text-slate-400 mb-1">Crosshair Placement</div>
-                            <div className="font-bold text-white">{analysis.mechanics.crosshair_placement}</div>
-                        </div>
-                        <div className="text-center p-3 bg-white/5 rounded-lg">
-                            <div className="text-xs text-slate-400 mb-1">Est. Reaction Time</div>
-                            <div className="font-bold text-white">{analysis.mechanics.reaction_time || 'N/A'}</div>
-                        </div>
+                        {/* Dynamic Extra Checks */}
+                        {analysis.mechanics.reaction_time && (
+                            <div className="text-center p-3 bg-white/5 rounded-lg">
+                                <div className="text-xs text-slate-400 mb-1">Est. Reaction Time</div>
+                                <div className="font-bold text-white">{analysis.mechanics.reaction_time}</div>
+                            </div>
+                        )}
+                        {analysis.mechanics.skill_shots && (
+                            <div className="text-center p-3 bg-white/5 rounded-lg col-span-2">
+                                <div className="text-xs text-slate-400 mb-1">Skill Shots</div>
+                                <div className="font-bold text-white text-sm">{analysis.mechanics.skill_shots}</div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                {/* Economy & Strategy */}
-                <div className="glass-card p-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-                    <h3 className="text-lg font-bold text-emerald-400 mb-4 flex items-center">
-                        <DollarSign className="w-5 h-5 mr-2" />
-                        Economy & Strategy
-                    </h3>
-                    <div className="flex items-center mb-6">
-                        <div className="w-16 h-16 rounded-full border-4 border-emerald-500 flex items-center justify-center text-xl font-bold text-white mr-4">
-                            {analysis.economy.rating}
+                {/* Economy & Strategy (FPS) OR Macro (MOBA) */}
+                {analysis.economy ? (
+                    <div className="glass-card p-6 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
+                        <h3 className="text-lg font-bold text-emerald-400 mb-4 flex items-center">
+                            <DollarSign className="w-5 h-5 mr-2" />
+                            Economy & Strategy
+                        </h3>
+                        <div className="flex items-center mb-6">
+                            <div className="w-16 h-16 rounded-full border-4 border-emerald-500 flex items-center justify-center text-xl font-bold text-white mr-4">
+                                {analysis.economy.rating}
+                            </div>
+                            <div>
+                                <div className="text-sm text-slate-400">Economy Efficiency Score</div>
+                                <div className="text-emerald-300 font-medium">{analysis.economy.rating >= 70 ? 'High Efficiency' : 'Needs Improvement'}</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="text-sm text-slate-400">Economy Efficiency Score</div>
-                            <div className="text-emerald-300 font-medium">Above Average</div>
+                        <p className="text-sm text-slate-300 italic mb-4">
+                            "{analysis.economy.analysis}"
+                        </p>
+                    </div>
+                ) : analysis.macro ? (
+                    <div className="glass-card p-6 rounded-xl border border-violet-500/20 bg-violet-500/5">
+                        <h3 className="text-lg font-bold text-violet-400 mb-4 flex items-center">
+                            <TrendingUp className="w-5 h-5 mr-2" />
+                            Macro Strategy
+                        </h3>
+                        {analysis.macro.vision_score_rating !== undefined && (
+                            <RatingBar label="Vision Control" value={analysis.macro.vision_score_rating} color="violet" />
+                        )}
+                        <div className="space-y-3 mt-4">
+                            <div className="bg-violet-500/10 p-3 rounded-lg">
+                                <div className="text-xs text-violet-300 mb-1 font-bold">Map Awareness</div>
+                                <p className="text-sm text-slate-200">{analysis.macro.map_awareness}</p>
+                            </div>
+                            <div className="bg-violet-500/10 p-3 rounded-lg">
+                                <div className="text-xs text-violet-300 mb-1 font-bold">Objective Control</div>
+                                <p className="text-sm text-slate-200">{analysis.macro.objective_control}</p>
+                            </div>
                         </div>
                     </div>
-                    <p className="text-sm text-slate-300 italic mb-4">
-                        "{analysis.economy.analysis}"
-                    </p>
-                </div>
+                ) : null}
             </div>
 
-            {/* Strengths & Weaknesses */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="glass-card p-6 rounded-xl border border-green-500/20 bg-green-500/5">
-                    <h3 className="text-lg font-bold text-green-400 mb-4 flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Major Strengths
-                    </h3>
-                    <ul className="space-y-3">
-                        {analysis.strengths.map((strength, index) => (
-                            <li key={index} className="flex items-start text-slate-300 text-sm">
-                                <span className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                {strength}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
 
-                <div className="glass-card p-6 rounded-xl border border-red-500/20 bg-red-500/5">
-                    <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center">
-                        <AlertTriangle className="w-5 h-5 mr-2" />
-                        Critical Weaknesses
-                    </h3>
-                    <ul className="space-y-3">
-                        {analysis.weaknesses.map((weakness, index) => (
-                            <li key={index} className="flex items-start text-slate-300 text-sm">
-                                <span className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                                {weakness}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            </div>
-
-            {/* Round Breakdown */}
+            {/* Round Analysis (FPS) OR Phase Analysis (MOBA) */}
             {analysis.rounds_analyzed && (
                 <div className="glass-card p-6 rounded-xl border border-white/10">
                     <h3 className="text-xl font-bold text-white mb-4 flex items-center">
@@ -149,6 +169,28 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ analysis }) => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {analysis.phases_analyzed && (
+                <div className="glass-card p-6 rounded-xl border border-white/10">
+                    <h3 className="text-xl font-bold text-white mb-4 flex items-center">
+                        <Activity className="w-5 h-5 text-brand-400 mr-2" />
+                        Phase Analysis
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {analysis.phases_analyzed.map((phase, idx) => (
+                            <div key={idx} className="bg-white/5 p-4 rounded-xl border border-white/5">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h4 className="font-bold text-white">{phase.phase}</h4>
+                                    <span className={`text-xs px-2 py-1 rounded ${phase.performance === 'Good' || phase.performance === 'Excellent' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                        {phase.performance}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-slate-300">{phase.notes}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

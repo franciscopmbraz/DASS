@@ -43,3 +43,33 @@ create policy "Anyone can update their own avatar."
   on storage.objects for update
   using ( auth.uid() = owner )
   with check ( bucket_id = 'avatars' );
+
+-- Create a table for trainings
+create table trainings (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users not null,
+  game text not null,
+  title text not null,
+  description text,
+  status text check (status in ('new', 'in_progress', 'completed')) default 'new',
+  progress integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Set up RLS for trainings
+alter table trainings enable row level security;
+
+create policy "Users can view their own trainings." on trainings
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert their own trainings." on trainings
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their own trainings." on trainings
+  for update using (auth.uid() = user_id);
+
+create policy "Users can delete their own trainings." on trainings
+  for delete using (auth.uid() = user_id);
+
+-- Add details column for wizard answers
+alter table trainings add column details jsonb;
