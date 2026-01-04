@@ -36,83 +36,94 @@ const TrainingPage: React.FC = () => {
     });
 
     return (
-        <div className="min-h-screen bg-[#09090b] font-sans">
+        <div className="min-h-screen bg-slate-950 font-sans text-white selection:bg-brand-500 selection:text-white relative overflow-hidden">
+            {/* Background Elements (Copied from Hero/Landing Style) */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/valorant/1920/1080')] bg-cover bg-center opacity-10 blur-sm mix-blend-overlay"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/95 to-slate-950"></div>
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[128px]"></div>
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[128px]"></div>
+            </div>
+
             <Navbar />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+                {/* Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 border-b border-white/5 pb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Your Training Plans</h1>
-                        <p className="text-gray-400">Manage your training plans and improve your skills in the game.</p>
+                        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-4">
+                            Your Training <span className="text-brand-500">Plans</span>
+                        </h1>
+                        <p className="text-lg text-slate-400 max-w-2xl">
+                            Manage your AI-generated training schedules and track your progress to reach the next rank.
+                        </p>
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-purple-900/20"
+                        className="group flex items-center gap-2 bg-brand-600 hover:bg-brand-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-[0_0_20px_rgba(20,184,166,0.3)] hover:shadow-[0_0_30px_rgba(20,184,166,0.5)]"
                     >
-                        <Plus size={20} />
+                        <Plus size={20} className="group-hover:rotate-90 transition-transform" />
                         Create New Plan
                     </button>
                 </div>
 
                 {/* Filters and Search Bar */}
-                <div className="flex flex-col md:flex-row gap-4 mb-8 bg-[#18181b] p-2 rounded-2xl border border-white/5">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+                <div className="flex flex-col md:flex-row gap-4 mb-10 bg-slate-900/50 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-xl">
+                    <div className="relative flex-1 group">
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 group-focus-within:text-brand-400 transition-colors" size={20} />
                         <input
                             type="text"
-                            placeholder="Search training plan..."
+                            placeholder="Search training plans..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-transparent text-white pl-12 pr-4 py-3 focus:outline-none"
+                            className="w-full bg-transparent text-white pl-12 pr-4 py-3 focus:outline-none placeholder-slate-600"
                         />
                     </div>
 
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 px-2 md:px-0 scrollbar-hide">
+                    <div className="flex items-center gap-1 overflow-x-auto pb-2 md:pb-0 px-2 md:px-0 scrollbar-hide">
                         {(['all', 'in_progress', 'new', 'completed'] as const).map((f) => (
                             <button
                                 key={f}
                                 onClick={() => setFilter(f)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${filter === f
-                                    ? 'bg-purple-600 text-white'
-                                    : 'bg-[#09090b] text-gray-400 hover:bg-[#27272a] hover:text-white'
+                                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${filter === f
+                                    ? 'bg-brand-500 text-slate-950 shadow-lg shadow-brand-500/20'
+                                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
                                     }`}
                             >
-                                {f === 'all' ? 'All' : f === 'in_progress' ? 'In Progress' : f === 'new' ? 'New' : 'Completed'}
+                                {f === 'all' ? 'All Plans' : f === 'in_progress' ? 'In Progress' : f === 'new' ? 'New' : 'Completed'}
                             </button>
                         ))}
-
-                        <button className="p-2 text-gray-400 hover:text-white ml-auto md:ml-2">
-                            <Filter size={20} />
-                        </button>
                     </div>
                 </div>
 
-                {/* content */}
+                {/* Content Grid */}
                 {isLoading ? (
-                    <div className="text-center text-gray-400 py-20">Loading your training plans...</div>
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-500"></div>
+                    </div>
                 ) : filteredTrainings.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredTrainings.map((training) => (
                             <TrainingCard key={training.id} training={training} />
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-20 bg-[#18181b] rounded-2xl border border-white/5">
-                        <div className="inline-flex justify-center items-center w-16 h-16 rounded-full bg-purple-600/10 mb-4">
-                            <Plus className="text-purple-600" size={32} />
+                    <div className="text-center py-24 bg-slate-900/30 rounded-3xl border border-white/5 border-dashed">
+                        <div className="inline-flex justify-center items-center w-20 h-20 rounded-full bg-slate-800/50 mb-6 group">
+                            <Plus className="text-slate-600 group-hover:text-brand-500 transition-colors" size={40} />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">No training plans found</h3>
-                        <p className="text-gray-400 max-w-md mx-auto mb-6">
+                        <h3 className="text-2xl font-bold text-white mb-2">No plans found</h3>
+                        <p className="text-slate-400 max-w-md mx-auto mb-8">
                             {searchQuery || filter !== 'all'
-                                ? 'Try adjusting your filters or search.'
-                                : 'Start creating your first personalized training plan.'}
+                                ? 'We couldn\'t find any plans matching your current filters.'
+                                : 'Start your journey by creating your first personalized training plan.'}
                         </p>
                         {filter === 'all' && !searchQuery && (
                             <button
                                 onClick={() => setIsModalOpen(true)}
-                                className="text-purple-400 hover:text-purple-300 font-medium"
+                                className="text-brand-400 hover:text-brand-300 font-bold hover:underline underline-offset-4"
                             >
-                                Create my first plan
+                                Generate AI Plan
                             </button>
                         )}
                     </div>
