@@ -81,3 +81,43 @@ export const updateTrainingProgress = async (id: string, progress: number) => {
 
     return data as Training;
 };
+
+export const getTrainingById = async (id: string) => {
+    const { data, error } = await supabase
+        .from('trainings')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return data as Training;
+};
+
+export const deleteTraining = async (id: string) => {
+    const { error } = await supabase
+        .from('trainings')
+        .delete()
+        .eq('id', id);
+
+    if (error) {
+        throw error;
+    }
+};
+
+export const updateTrainingDetails = async (id: string, details: any) => {
+    const { data, error } = await supabase
+        .from('trainings')
+        .update({ details })
+        .eq('id', id)
+        .select()
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return data as Training;
+};

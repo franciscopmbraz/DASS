@@ -3,7 +3,7 @@ import Navbar from './Navbar';
 import { Plus, Search, Filter } from 'lucide-react';
 import TrainingCard from './TrainingCard';
 import CreateTrainingWizard from './CreateTrainingWizard';
-import { fetchTrainings, Training } from '../services/trainingService';
+import { fetchTrainings, deleteTraining, Training } from '../services/trainingService';
 
 const TrainingPage: React.FC = () => {
     const [trainings, setTrainings] = useState<Training[]>([]);
@@ -34,6 +34,16 @@ const TrainingPage: React.FC = () => {
             t.description?.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesFilter && matchesSearch;
     });
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteTraining(id);
+            setTrainings(prev => prev.filter(t => t.id !== id));
+        } catch (error) {
+            console.error('Failed to delete training', error);
+            alert('Failed to delete training plan. Please try again.');
+        }
+    };
 
     return (
         <div className="min-h-screen bg-slate-950 font-sans text-white selection:bg-brand-500 selection:text-white relative overflow-hidden">
@@ -104,7 +114,11 @@ const TrainingPage: React.FC = () => {
                 ) : filteredTrainings.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredTrainings.map((training) => (
-                            <TrainingCard key={training.id} training={training} />
+                            <TrainingCard
+                                key={training.id}
+                                training={training}
+                                onDelete={handleDelete}
+                            />
                         ))}
                     </div>
                 ) : (

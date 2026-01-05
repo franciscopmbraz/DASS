@@ -6,6 +6,7 @@ import LoginPage from './components/LoginPage';
 import SignUpPage from './components/SignUpPage';
 import Dashboard from './components/Dashboard';
 import TrainingPage from './components/TrainingPage';
+import TrainingDetailsPage from './components/TrainingDetailsPage';
 import UserProfilePage from './components/UserProfilePage';
 
 const App: React.FC = () => {
@@ -17,6 +18,7 @@ const App: React.FC = () => {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/training" element={<TrainingPage />} />
+        <Route path="/training/:id" element={<TrainingDetailsPage />} />
         <Route path="/profile" element={<UserProfilePage />} />
       </Routes>
     </Router>

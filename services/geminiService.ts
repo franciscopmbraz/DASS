@@ -209,9 +209,27 @@ export const geminiService = {
         try {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
+            // Dynamic Theme Logic
+            const days = answers.availability_days;
+            const hours = answers.availability_hours;
+            let themeInstruction = "";
+
+            // Logic Implementation
+            if ((days === '1–2' || days === '3–4') && (hours === '<1h' || hours === '1–2h')) {
+                themeInstruction = "STRUCTURAL REQUIREMENT: The user has low availability. Assign ONE single theme that spans across TWO weeks (e.g., Week 1 & 2 share a theme, Week 3 & 4 share a theme).";
+            } else if ((days === '1–2' || days === '3–4') && (hours === '2–4h' || hours === '+4h')) {
+                themeInstruction = "STRUCTURAL REQUIREMENT: Assign ONE distinct theme per week.";
+            } else if ((days === '5–6' || days === 'Every day') && (hours === '<1h' || hours === '1–2h')) {
+                themeInstruction = "STRUCTURAL REQUIREMENT: The user plays frequently but short sessions. Assign 1 to 2 themes per week depending on difficulty.";
+            } else if ((days === '5–6' || days === 'Every day') && (hours === '2–4h' || hours === '+4h')) {
+                themeInstruction = "STRUCTURAL REQUIREMENT: The user is a hardcore grinder. Assign 2 to 3 themes per week to keep it engaging and fast-paced.";
+            }
+
             const prompt = `
                 Create a 4-week personalized esports training plan for ${game} based on the following player profile:
                 ${JSON.stringify(answers, null, 2)}
+
+                ${themeInstruction}
 
                 Output MUST be strict JSON with this structure:
                 {
@@ -220,7 +238,14 @@ export const geminiService = {
                             "week_number": 1,
                             "focus": "Theme of the week",
                             "daily_routine": [
-                                { "day": "Monday", "activity": "...", "duration": "..." }
+                                { 
+                                    "day": "Monday", 
+                                    "exercises": [
+                                        { "name": "Warm-up", "description": "...", "duration": "15m", "difficulty": "Low" },
+                                        { "name": "Study", "description": "...", "duration": "30m", "difficulty": "Medium" },
+                                        { "name": "Ranked", "description": "...", "duration": "2h", "difficulty": "High" }
+                                    ]
+                                }
                             ]
                         }
                     ],
