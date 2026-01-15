@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { AnalysisResult } from "../types";
+import { AnalysisResult, Analysis } from "../types";
+import { supabase } from '../lib/supabase';
+import { createAnalysis } from './analysisService';
 
 // Initialize Gemini API with the new SDK
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -7,7 +9,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 export const geminiService = {
     // Analyze a video file
-    async analyzeVideo(file: File, promptHint: string, onStatusUpdate?: (status: string) => void): Promise<AnalysisResult> {
+    async analyzeVideo(file: File, promptHint: string, onStatusUpdate?: (status: string) => void): Promise<Analysis> {
         if (!apiKey) {
             throw new Error("Gemini API Key is missing. Please set VITE_GEMINI_API_KEY in .env.local");
         }
@@ -15,17 +17,31 @@ export const geminiService = {
         try {
             console.log("Analyzing file:", file.name);
 
-            // 1. Upload the video file (Naive implementation for MVP, ideal would be file API or smaller chunks)
-            // For browser-based large file support, usually we'd need a backend proxy or specialized upload endpoint.
-            // But here we will convert to base64 for the 'inline data' payload if small enough, or assume specific handling.
-            // *CRITICAL FIX*: The user is uploading clips. We will use the proper Generative AI file API or inline data if supported.
-            // For this environment, let's assume we can send the data as inline base64 for short clips (up to 20MB usually).
-            // NOTE: The previous code was MOCKING the result. Now we must actually call the model.
+            // 1. Upload Video to Supabase Storage
+            if (onStatusUpdate) onStatusUpdate("Uploading video securely...");
 
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('videos')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                console.error("Upload error:", uploadError);
+                throw new Error("Failed to upload video.");
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(filePath);
+
+            // 2. Prepare for AI Analysis
+            if (onStatusUpdate) onStatusUpdate("Processing video frames...");
             const base64Data = await fileToGenerativePart(file);
 
-            // 2. Construct the Prompt with strict JSON requirements
-            // Determine Game Type and appropriate JSON Structure
+            // 3. Construct Prompt (Logic remaining same as before)
             const isMoba = /league of legends|dota 2/i.test(promptHint);
             const isFps = /valorant|cs2|counter[ -]strike|overwatch|apex|fortnite/i.test(promptHint);
 
@@ -101,14 +117,15 @@ export const geminiService = {
                 ${gameSpecificJson}
             `;
 
-            // 3. Call Gemini with Robust Retry Logic
-            // 3. Call Gemini with Robust Retry Logic
+            // 4. Call Gemini with Robust Retry Logic
             // Using gemini-2.5-flash per user request
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             let result;
-            let retries = 5; // Increased retries
-            let delay = 5000; // Start with 5 seconds
+            let retries = 5;
+            let delay = 5000;
+
+            if (onStatusUpdate) onStatusUpdate("Consulting AI Coach...");
 
             while (retries > 0) {
                 try {
@@ -116,17 +133,15 @@ export const geminiService = {
                         systemPrompt,
                         { inlineData: { data: base64Data, mimeType: file.type } }
                     ]);
-                    break; // Success
+                    break;
                 } catch (error: any) {
                     const isQuotaError = error.message.includes('429') || error.message.includes('Quota exceeded');
 
                     if (isQuotaError && retries > 1) {
-                        // Try to parse specific retry delay from error message: "retryDelay": "31s"
                         const match = error.message.match(/retryDelay"?:\s*"(\d+(?:\.\d+)?)s/);
                         let waitTime = delay;
 
                         if (match && match[1]) {
-                            // If API tells us exactly how long to wait, use that + 2 seconds buffer
                             waitTime = (parseFloat(match[1]) * 1000) + 2000;
                             const msg = `Quota exceeded. Waiting ${Math.ceil(waitTime / 1000)}s before retrying...`;
                             console.log(msg);
@@ -135,30 +150,44 @@ export const geminiService = {
                             const msg = `Quota exceeded. Retrying in ${delay / 1000}s...`;
                             console.warn(msg);
                             if (onStatusUpdate) onStatusUpdate(msg);
-                            // Standard backoff if no specific time found
                             delay *= 2;
                         }
 
                         await new Promise(resolve => setTimeout(resolve, waitTime));
                         retries--;
                     } else {
-                        throw error; // Re-throw other errors or if out of retries
+                        throw error;
                     }
                 }
             }
 
             if (!result) throw new Error("Failed to generate content after multiple retries (Quota Limit).");
 
+            if (onStatusUpdate) onStatusUpdate("Finalizing Report...");
             const responseText = result.response.text();
 
-            // 4. Parse and Validate
+            // 5. Parse and Validate
             const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
             const analysisData: AnalysisResult = JSON.parse(cleanJson);
 
-            // Simple validation to prevent hallucinated timestamps (basic heuristic)
-            // Real validation would need actual video duration metadata.
+            // 6. Save to Supabase
+            // Attempt to detect game from prompt or result if needed, defaults to "Detected Game" if not found
+            let detectedGame = "Detected Game";
+            if (isMoba) detectedGame = "League of Legends (Detected)";
+            if (isFps) detectedGame = "Valorant/CS2 (Detected)";
+            // Better: use the one from promptHint if specific
+            if (promptHint.includes("League of Legends")) detectedGame = "League of Legends";
+            else if (promptHint.includes("Valorant")) detectedGame = "Valorant";
+            else if (promptHint.includes("CS2")) detectedGame = "Counter-Strike 2";
 
-            return analysisData;
+            const savedAnalysis = await createAnalysis(
+                publicUrl,
+                file.name,
+                detectedGame,
+                analysisData
+            );
+
+            return savedAnalysis;
 
         } catch (error) {
             console.error("Analysis failed:", error);
@@ -178,8 +207,12 @@ export const geminiService = {
             const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
             // Start the chat session
+            // History must start with a user role. Find the first user message.
+            const firstUserIndex = history.findIndex(h => h.role === 'user');
+            const sanitizedHistory = firstUserIndex !== -1 ? history.slice(firstUserIndex) : [];
+
             const chat = model.startChat({
-                history: history.map(h => ({
+                history: sanitizedHistory.map(h => ({
                     role: h.role === 'user' ? 'user' : 'model',
                     parts: [{ text: h.content }]
                 }))
@@ -231,6 +264,12 @@ export const geminiService = {
 
                 ${themeInstruction}
 
+                CRITICAL INSTRUCTION: The 'theme' for each day must be UNIQUE, ACTION-ORIENTED, and SPICY. 
+                - DO NOT use generic names like "Mechanics", "VOD Review", "Ranked Games" repeatedly.
+                - BAD: "VOD Review", "Aim Training", "Ranked Session"
+                - GOOD: "Snapshot Precision Drill", "Laning Phase Domination", "Vision Control Masterclass", "Clutch Factor Training", "Anti-Tilt Mental Reset", "Macro Decision Assessment".
+                - Make it sound like a pro coaching curriculum.
+
                 Output MUST be strict JSON with this structure:
                 {
                     "weeks": [
@@ -240,6 +279,7 @@ export const geminiService = {
                             "daily_routine": [
                                 { 
                                     "day": "Monday", 
+                                    "theme": "Mechanics & Warmup",
                                     "exercises": [
                                         { "name": "Warm-up", "description": "...", "duration": "15m", "difficulty": "Low" },
                                         { "name": "Study", "description": "...", "duration": "30m", "difficulty": "Medium" },

@@ -66,6 +66,26 @@ export interface UserProfile {
     nickname?: string;
     favorite_games?: string[];
     goals?: string[];
+    level?: number;
+    xp?: number;
 }
 
 export type AnalysisStatus = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';
+
+export interface Analysis {
+    id: string;
+    user_id: string;
+    video_url: string;
+    video_title: string;
+    game: string;
+    analysis_result: AnalysisResult;
+    created_at: string;
+}
+
+export interface ChatMessage {
+    id: string;
+    analysis_id: string;
+    sender: 'user' | 'ai';
+    content: string;
+    created_at: string;
+}

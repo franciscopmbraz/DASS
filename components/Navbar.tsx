@@ -63,7 +63,7 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
         }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-32">
           {/* Logo */}
           <Link to="/" className="flex-shrink-0 flex items-center space-x-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
             <Crosshair className="h-8 w-8 text-brand-400" />
@@ -73,50 +73,47 @@ const Navbar: React.FC<NavbarProps> = ({ isScrolled }) => {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-8">
-              <Link to="/dashboard" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Video Analyzer</Link>
-              <Link to="/training" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Training</Link>
-              <a href="#features" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Features</a>
-              <a href="#ai-tech" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">How it Works</a>
-              <a href="#audience" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">For You</a>
-              {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                    className="flex items-center gap-3 hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium focus:outline-none"
-                  >
-                    {profile?.avatar_url ? (
-                      <img src={profile.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-brand-500/30 object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
-                        <User className="h-4 w-4" />
-                      </div>
-                    )}
-                    <span>{profile?.nickname || 'Profile'}</span>
-                  </button>
-
-                  {isProfileDropdownOpen && (
-                    <ProfileDropdown
-                      user={user}
-                      profile={profile}
-                      onSignOut={handleSignOut}
-                      onClose={() => setIsProfileDropdownOpen(false)}
-                    />
-                  )}
-                </div>
-              ) : (
-                <>
-                  <Link to="/login" className="hover:text-brand-300 transition-colors px-3 py-2 text-sm font-medium">Login</Link>
-                  <Link
-                    to="/signup"
-                    className="bg-brand-600 hover:bg-brand-500 text-white px-6 py-2 rounded-lg font-medium transition-all hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] hover:-translate-y-0.5"
-                  >
-                    Get Early Access
-                  </Link>
-                </>
-              )}
+          <div className="hidden md:flex flex-1 justify-center z-50">
+            <div className="flex items-center space-x-12">
+              <Link to="/dashboard" className="text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-bold uppercase tracking-wide">Video Analyzer</Link>
+              <Link to="/training" className="text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-bold uppercase tracking-wide">Training</Link>
+              <a href="#features" className="text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-bold uppercase tracking-wide">Features</a>
+              <a href="#ai-tech" className="text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-bold uppercase tracking-wide">How it Works</a>
+              <a href="#audience" className="text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-bold uppercase tracking-wide">For You</a>
             </div>
+          </div>
+
+          <div className="hidden md:flex items-center space-x-4">
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center gap-3 text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-medium focus:outline-none"
+                >
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt="Profile" className="w-8 h-8 rounded-full border border-brand-500/30 object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
+                      <User className="h-4 w-4 text-brand-400" />
+                    </div>
+                  )}
+                  <span>{profile?.nickname || 'Rloca'}</span>
+                </button>
+
+                {isProfileDropdownOpen && (
+                  <ProfileDropdown
+                    user={user}
+                    profile={profile}
+                    onSignOut={handleSignOut}
+                    onClose={() => setIsProfileDropdownOpen(false)}
+                  />
+                )}
+              </div>
+            ) : (
+              <>
+                <Link to="/login" className="text-slate-300 hover:text-white transition-colors px-3 py-2 text-sm font-medium">Login</Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}

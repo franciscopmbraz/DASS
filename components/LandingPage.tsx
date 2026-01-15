@@ -7,6 +7,7 @@ import AiShowcase from './AiShowcase';
 import TechStack from './TechStack';
 import Footer from './Footer';
 import CtaSection from './CtaSection';
+import FAQ from './FAQ';
 
 const LandingPage: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -22,7 +23,7 @@ const LandingPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden selection:bg-brand-500 selection:text-white">
       <Navbar isScrolled={isScrolled} />
-      
+
       <main>
         <section id="hero">
           <Hero />
@@ -40,10 +41,13 @@ const LandingPage: React.FC = () => {
           <Personas />
         </section>
 
+
         <section id="cta" className="py-20 relative overflow-hidden">
           <div className="absolute inset-0 bg-brand-900/10 z-0"></div>
           <CtaSection />
         </section>
+
+        <FAQ />
       </main>
 
       <TechStack />

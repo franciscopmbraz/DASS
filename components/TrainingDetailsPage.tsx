@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getTrainingById, updateTrainingDetails, Training } from '../services/trainingService';
+import { getTrainingById, updateTrainingDetails, updateTrainingProgress, Training } from '../services/trainingService';
+import { userService } from '../services/userService';
+import { supabase } from '../lib/supabase';
 import Navbar from './Navbar';
 import {
     Calendar, CheckCircle, Clock, ChevronRight, Play, Crosshair, Zap,
-    TrendingUp, Award, Map, Trophy, ChevronDown, CheckSquare, Square, X, Save, Edit2
+    TrendingUp, Award, Map, Trophy, ChevronDown, CheckSquare, Square, X, Save, Edit2, ChevronLeft
 } from 'lucide-react';
 
 const TrainingDetailsPage: React.FC = () => {
@@ -17,6 +19,7 @@ const TrainingDetailsPage: React.FC = () => {
     const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
     const [showRankModal, setShowRankModal] = useState(false);
     const [rankInput, setRankInput] = useState('');
+    const [isScrolled, setIsScrolled] = useState(false);
 
     useEffect(() => {
         const fetchTraining = async () => {
@@ -33,6 +36,32 @@ const TrainingDetailsPage: React.FC = () => {
 
         fetchTraining();
     }, [id]);
+
+    const calculateTotalExercises = (schedule: any) => {
+        if (!schedule || !schedule.weeks) return 0;
+        let total = 0;
+        schedule.weeks.forEach((week: any) => {
+            if (week.daily_routine) {
+                week.daily_routine.forEach((day: any) => {
+                    if (day.exercises && Array.isArray(day.exercises)) {
+                        total += day.exercises.length;
+                    } else if (day.activity) {
+                        const parts = day.activity.split(/(Warm-up:|Study:|Ranked Games:|Review:|Flex Day:|Alternative:)/g);
+                        let dayCount = 0;
+                        if (parts.length > 1) {
+                            for (let i = 1; i < parts.length; i += 2) {
+                                if (parts[i + 1]?.trim()) dayCount++;
+                            }
+                        } else {
+                            dayCount = 1;
+                        }
+                        total += dayCount;
+                    }
+                });
+            }
+        });
+        return total;
+    };
 
     const handleMarkDone = async (exerciseId: string, difficulty: string) => {
         if (!training || !id) return;
@@ -74,10 +103,45 @@ const TrainingDetailsPage: React.FC = () => {
             user_progress: updatedProgress
         };
 
-        setTraining({ ...training, details: newDetails }); // Optimistic UI
+        const currentSchedule = details.schedule || details;
+        const totalExercises = calculateTotalExercises(currentSchedule);
+        const progressPercentage = totalExercises > 0
+            ? Math.round((newCompletedExercises.length / totalExercises) * 100)
+            : 0;
+
+        setTraining({ ...training, details: newDetails, progress: progressPercentage }); // Optimistic UI
 
         try {
-            await updateTrainingDetails(id, newDetails);
+            await Promise.all([
+                updateTrainingDetails(id, newDetails),
+                updateTrainingProgress(id, progressPercentage)
+            ]);
+
+            // Update Global User XP
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const delta = isDone ? -xpValue : xpValue; // If was done (undoing), substract. If not done (doing), add.
+                const { leveledUp, level } = await userService.updateUserXP(user.id, delta);
+
+                if (leveledUp) {
+                    // Show a level up celebration (could be a toast or modal)
+                    // For now, using a simple alert/console, but ideally a nice UI component
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-24 right-4 z-[100] px-6 py-4 rounded-xl shadow-2xl border bg-brand-500/10 border-brand-500/20 text-brand-400 flex items-center gap-3 animate-in slide-in-from-right duration-500';
+                    notification.innerHTML = `
+                        <div class="h-10 w-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                            ${level}
+                        </div>
+                        <div>
+                            <p class="font-bold text-white">Level Up!</p>
+                            <p class="text-sm">You reached Level ${level}!</p>
+                        </div>
+                     `;
+                    document.body.appendChild(notification);
+                    setTimeout(() => notification.remove(), 4000);
+                }
+            }
+
         } catch (error) {
             console.error("Failed to update progress", error);
         }
@@ -130,6 +194,39 @@ const TrainingDetailsPage: React.FC = () => {
         }
     };
 
+    const details = training?.details || {};
+    const schedule = details.schedule || details;
+    const weeks = schedule.weeks || [];
+    const currentWeekData = weeks.find((w: any) => w.week_number === selectedWeek);
+
+    const weekDays = React.useMemo(() => {
+        return [1, 2, 3, 4, 5, 6, 7].filter(day => {
+            if (!currentWeekData || !currentWeekData.daily_routine || !Array.isArray(currentWeekData.daily_routine)) return false;
+
+            const dayRoutine = currentWeekData.daily_routine.find((item: any) => {
+                const d = item.day ? item.day.toString() : "";
+                const dayMap = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+                const target = dayMap[day - 1];
+                return d.includes(target) || d.includes(`Day ${day}`) || d.includes(day.toString());
+            });
+
+            // Filter out if no routine exists or if it has no exercises/content
+            if (!dayRoutine) return false;
+
+            const hasExercises = (dayRoutine.exercises && Array.isArray(dayRoutine.exercises) && dayRoutine.exercises.length > 0) ||
+                (dayRoutine.activity && dayRoutine.activity.length > 0);
+
+            return hasExercises;
+        });
+    }, [currentWeekData]);
+
+    // Ensure we select a valid day if the current one is hidden
+    useEffect(() => {
+        if (weekDays.length > 0 && !weekDays.includes(selectedDay)) {
+            setSelectedDay(weekDays[0]);
+        }
+    }, [selectedWeek, weekDays, selectedDay]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -141,11 +238,6 @@ const TrainingDetailsPage: React.FC = () => {
     if (!training) {
         return <div className="text-white text-center pt-20">Training plan not found.</div>;
     }
-
-    const details = training.details || {};
-    const schedule = details.schedule || details;
-    const weeks = schedule.weeks || [];
-    const currentWeekData = weeks.find((w: any) => w.week_number === selectedWeek);
 
     const dayMapping = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     const targetDayName = dayMapping[selectedDay - 1];
@@ -195,18 +287,48 @@ const TrainingDetailsPage: React.FC = () => {
     const totalCount = exercisesForDay.length;
     const dailyCompletion = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-    const weekDays = [1, 2, 3, 4, 5, 6, 7];
+
 
     return (
         <div className="min-h-screen bg-slate-950 font-sans text-white selection:bg-brand-500 selection:text-white">
-            <Navbar />
+            <Navbar isScrolled={isScrolled} />
 
             <div className="pt-24 flex h-screen overflow-hidden">
                 <aside className="w-64 bg-slate-900/50 border-r border-white/5 flex-shrink-0 flex flex-col pt-6 hidden md:flex backdrop-blur-sm">
                     <div className="px-6 mb-8">
                         <div className="text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">Current Plan</div>
-                        <h2 className="text-xl font-bold text-white leading-tight">{training.title}</h2>
-                        <div className="text-sm text-slate-500 mt-1">Week {selectedWeek} • Day {selectedDay}</div>
+                        <h2 className="text-xl font-bold text-white leading-tight mb-2">{training.title}</h2>
+                        <div className="flex items-center gap-3 text-sm text-slate-500">
+                            <div className="flex items-center bg-slate-800 rounded-lg p-1">
+                                <button
+                                    onClick={() => {
+                                        if (selectedWeek > 1) {
+                                            setSelectedWeek(selectedWeek - 1);
+                                            // selectedDay will be auto-corrected by the useEffect
+                                        }
+                                    }}
+                                    disabled={selectedWeek === 1}
+                                    className={`p-1 rounded hover:bg-slate-700 transition-colors ${selectedWeek === 1 ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <ChevronLeft size={14} />
+                                </button>
+                                <span className="px-2 font-medium text-slate-300">Week {selectedWeek}</span>
+                                <button
+                                    onClick={() => {
+                                        if (selectedWeek < weeks.length) {
+                                            setSelectedWeek(selectedWeek + 1);
+                                            // selectedDay will be auto-corrected by the useEffect
+                                        }
+                                    }}
+                                    disabled={selectedWeek === weeks.length}
+                                    className={`p-1 rounded hover:bg-slate-700 transition-colors ${selectedWeek === weeks.length ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white'}`}
+                                >
+                                    <ChevronRight size={14} />
+                                </button>
+                            </div>
+                            <span>•</span>
+                            <span>Day {selectedDay}</span>
+                        </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-700">
@@ -228,7 +350,7 @@ const TrainingDetailsPage: React.FC = () => {
                                 </div>
                                 <div className="text-left">
                                     <div className="text-xs font-bold opacity-70">Day {day}</div>
-                                    <div className="text-sm font-medium truncate">
+                                    <div className="text-sm font-medium line-clamp-2 leading-tight">
                                         {getDayTitle(day, currentWeekData)}
                                     </div>
                                 </div>
@@ -237,7 +359,10 @@ const TrainingDetailsPage: React.FC = () => {
                     </div>
                 </aside>
 
-                <main className="flex-1 overflow-y-auto p-8 relative">
+                <main
+                    className="flex-1 overflow-y-auto p-8 relative"
+                    onScroll={(e) => setIsScrolled(e.currentTarget.scrollTop > 20)}
+                >
                     <div className="absolute top-0 left-0 w-full h-96 bg-brand-500/5 blur-[100px] pointer-events-none"></div>
 
                     <div className="max-w-4xl mx-auto relative z-10">
@@ -333,9 +458,12 @@ const TrainingDetailsPage: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="mb-4 flex justify-between items-end">
-                            <h2 className="text-xl font-bold text-white">Today's Exercises</h2>
-                            <span className="text-sm text-slate-400">Estimated time: ~1h 15m</span>
+                        <div className="mb-6">
+                            <h3 className="text-brand-400 font-bold uppercase tracking-wider text-sm mb-1">{getDayTitle(selectedDay, currentWeekData)}</h3>
+                            <div className="flex justify-between items-end">
+                                <h2 className="text-2xl font-bold text-white">Today's Exercises</h2>
+                                <span className="text-sm text-slate-400">Estimated time: ~1h 15m</span>
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -524,6 +652,37 @@ const ExerciseCard = ({ routine, index, isExpanded, onToggle, onMarkDone, isDone
 };
 
 const getDayTitle = (day: number, weekData: any) => {
+    if (!weekData || !weekData.daily_routine) return "Training";
+
+    const dayMapping = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const targetDayName = dayMapping[day - 1];
+
+    const dayRoutine = weekData.daily_routine.find((item: any) => {
+        const d = item.day ? item.day.toString() : "";
+        return d.includes(targetDayName) || d.includes(`Day ${day}`) || d.includes(day.toString());
+    });
+
+    if (!dayRoutine) return "Rest";
+
+    // 1. Explicit theme from API
+    if (dayRoutine.theme) return dayRoutine.theme;
+
+    // 2. Derive from exercises
+    if (dayRoutine.exercises && Array.isArray(dayRoutine.exercises) && dayRoutine.exercises.length > 0) {
+        const exerciseNames = dayRoutine.exercises.map((e: any) => e.activity || e.name || "").join(" ").toLowerCase();
+
+        if (exerciseNames.includes("vod") || exerciseNames.includes("review")) return "VOD Review";
+        if (exerciseNames.includes("aim") || exerciseNames.includes("mechanics") || exerciseNames.includes("click")) return "Mechanics";
+        if (exerciseNames.includes("ranked") || exerciseNames.includes("game") || exerciseNames.includes("match")) return "Ranked Games";
+        if (exerciseNames.includes("positioning") || exerciseNames.includes("macro")) return "Macro & Positioning";
+        if (exerciseNames.includes("team") || exerciseNames.includes("comms")) return "Team Play";
+
+        // Fallback to first exercise name if brief
+        const first = dayRoutine.exercises[0].activity || dayRoutine.exercises[0].name;
+        if (first && first.length < 20) return first;
+    }
+
+    // 3. Fallback from hardcoded legacy list (optional, but good for very old data)
     const titles = [
         "Mechanics", "VOD Review", "Positioning", "Rest",
         "Team Play", "Game Sense", "Assessment"

@@ -258,6 +258,12 @@ const UserProfilePage: React.FC = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Level Badge */}
+                            <div className="absolute -top-2 -left-2 w-10 h-10 bg-brand-600 rounded-full border-4 border-slate-900 flex items-center justify-center text-white font-bold shadow-lg z-10">
+                                {profile?.level || 1}
+                            </div>
+
                             <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 p-2 bg-brand-600 rounded-full cursor-pointer hover:bg-brand-500 transition-colors shadow-lg border border-slate-900 text-white hover:scale-110 active:scale-95 duration-200">
                                 <Camera size={18} />
                             </label>
@@ -290,8 +296,34 @@ const UserProfilePage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
-                    {/* Left Column: Personal Info */}
+                    {/* Left Column: Personal Info & Level */}
                     <div className="md:col-span-1 space-y-6">
+
+                        {/* Level & XP Card */}
+                        <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-white/10 transition-colors duration-300">
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-brand-400">
+                                <Target size={20} /> Level Progress
+                            </h2>
+
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-2xl font-bold text-white">Level {profile?.level || 1}</span>
+                                <span className="text-sm text-slate-400">{profile?.xp || 0} / {(profile?.level || 1) * 1000} XP</span>
+                            </div>
+
+                            {/* XP Bar */}
+                            <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden mb-4 border border-white/5">
+                                <div
+                                    className="h-full bg-gradient-to-r from-brand-600 to-accent-500 shadow-[0_0_10px_rgba(124,58,237,0.5)] transition-all duration-1000 ease-out"
+                                    style={{ width: `${Math.min(((profile?.xp || 0) / ((profile?.level || 1) * 1000)) * 100, 100)}%` }}
+                                ></div>
+                            </div>
+
+                            <p className="text-xs text-slate-500 text-center">
+                                Earn XP by completing analyses and training goals.
+                            </p>
+                        </div>
+
+                        {/* Personal Info */}
                         <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-white/10 transition-colors duration-300">
                             <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-brand-400">
                                 <User size={20} /> Personal Info
