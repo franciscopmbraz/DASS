@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getTrainingById, updateTrainingDetails, updateTrainingProgress, Training } from '../services/trainingService';
+import { getTrainingById, updateTrainingDetails, updateTrainingProgress, updateTrainingStatus, Training } from '../services/trainingService';
 import { userService } from '../services/userService';
 import { supabase } from '../lib/supabase';
 import Navbar from './Navbar';
@@ -109,13 +109,27 @@ const TrainingDetailsPage: React.FC = () => {
             ? Math.round((newCompletedExercises.length / totalExercises) * 100)
             : 0;
 
-        setTraining({ ...training, details: newDetails, progress: progressPercentage }); // Optimistic UI
+        // Calculate Status
+        let newStatus = training.status;
+        if (progressPercentage === 100 && training.status !== 'completed') {
+            newStatus = 'completed';
+        } else if (progressPercentage < 100 && training.status === 'completed') {
+            newStatus = 'in_progress';
+        }
+
+        setTraining({ ...training, details: newDetails, progress: progressPercentage, status: newStatus }); // Optimistic UI
 
         try {
-            await Promise.all([
+            const promises: Promise<any>[] = [
                 updateTrainingDetails(id, newDetails),
                 updateTrainingProgress(id, progressPercentage)
-            ]);
+            ];
+
+            if (newStatus !== training.status) {
+                promises.push(updateTrainingStatus(id, newStatus));
+            }
+
+            await Promise.all(promises);
 
             // Update Global User XP
             const { data: { user } } = await supabase.auth.getUser();

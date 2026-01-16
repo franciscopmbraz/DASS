@@ -8,6 +8,7 @@ import Dashboard from './components/Dashboard';
 import TrainingPage from './components/TrainingPage';
 import TrainingDetailsPage from './components/TrainingDetailsPage';
 import UserProfilePage from './components/UserProfilePage';
+import AchievementsPage from './components/AchievementsPage';
 
 const App: React.FC = () => {
   return (
@@ -20,6 +21,7 @@ const App: React.FC = () => {
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/training/:id" element={<TrainingDetailsPage />} />
         <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/achievements" element={<AchievementsPage />} />
       </Routes>
     </Router>
   );

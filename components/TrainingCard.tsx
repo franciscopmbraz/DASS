@@ -1,5 +1,6 @@
 import React from 'react';
-import { Training } from '../services/trainingService';
+import { useNavigate } from 'react-router-dom';
+import { Training, updateTrainingStatus } from '../services/trainingService';
 import { Play, Eye, RotateCcw, Clock, CheckCircle, Trash2 } from 'lucide-react';
 
 interface TrainingCardProps {
@@ -8,6 +9,8 @@ interface TrainingCardProps {
 }
 
 const TrainingCard: React.FC<TrainingCardProps> = ({ training, onDelete }) => {
+    const navigate = useNavigate();
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'new':
@@ -38,6 +41,18 @@ const TrainingCard: React.FC<TrainingCardProps> = ({ training, onDelete }) => {
             default: return null;
         }
     }
+
+    const handleStartTraining = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (training.status === 'new') {
+            try {
+                await updateTrainingStatus(training.id, 'in_progress');
+            } catch (error) {
+                console.error("Failed to update status", error);
+            }
+        }
+        navigate(`/training/${training.id}`);
+    };
 
     return (
         <div className="group relative bg-slate-900/40 backdrop-blur-sm rounded-2xl p-6 border border-white/5 hover:border-brand-500/30 transition-all duration-300 hover:shadow-[0_0_30px_rgba(20,184,166,0.1)] overflow-hidden">
@@ -75,7 +90,10 @@ const TrainingCard: React.FC<TrainingCardProps> = ({ training, onDelete }) => {
 
                 {/* Actions */}
                 <div className="flex gap-3">
-                    <a href={`/training/${training.id}`} className="flex-1 bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-900/20 group-hover:shadow-brand-500/20 flex items-center justify-center text-center">
+                    <button
+                        onClick={handleStartTraining}
+                        className="flex-1 bg-brand-600 hover:bg-brand-500 text-white py-3 rounded-xl font-bold transition-all shadow-lg shadow-brand-900/20 group-hover:shadow-brand-500/20 flex items-center justify-center text-center cursor-pointer"
+                    >
                         {training.status === 'new' ? (
                             <>Start Training <Play size={16} className="ml-2 fill-current" /></>
                         ) : training.status === 'completed' ? (
@@ -83,7 +101,7 @@ const TrainingCard: React.FC<TrainingCardProps> = ({ training, onDelete }) => {
                         ) : (
                             <>Continue <Play size={16} className="ml-2 fill-current" /></>
                         )}
-                    </a>
+                    </button>
 
                     {/* Delete Button */}
                     <button

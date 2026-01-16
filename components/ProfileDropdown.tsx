@@ -90,16 +90,14 @@ const ProfileDropdown: React.FC<ProfileDropdownProps> = ({ user, profile, onSign
                     </span>
                 </button>
 
-                <button
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors group text-left cursor-not-allowed opacity-60"
-                    title="Coming Soon"
+                <Link
+                    to="/achievements"
+                    onClick={onClose}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors group text-left"
                 >
                     <Medal className="h-4 w-4 text-slate-400 group-hover:text-brand-400 transition-colors" />
                     Badges
-                    <span className="ml-auto text-[10px] bg-brand-500/10 text-brand-400 px-1.5 py-0.5 rounded border border-brand-500/20">
-                        Soon
-                    </span>
-                </button>
+                </Link>
 
                 <div className="h-px bg-white/10 my-2" />
 

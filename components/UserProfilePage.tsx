@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
 import { Camera, Save, Plus, X, Gamepad2, Target, User, Edit2, Loader2, CheckCircle, LogOut, Trash2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BadgesWidget from './BadgesWidget';
 
 const UserProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -373,6 +374,9 @@ const UserProfilePage: React.FC = () => {
 
                     {/* Right Column: Details & Stats */}
                     <div className="md:col-span-2 space-y-6">
+
+                        {/* Badges Widget */}
+                        <BadgesWidget />
 
                         {/* Description */}
                         <div className="bg-slate-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-white/10 transition-colors duration-300">
