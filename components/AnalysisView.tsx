@@ -4,6 +4,7 @@ import { CheckCircle, AlertTriangle, Play, Zap, Target, TrendingUp, DollarSign, 
 
 interface AnalysisViewProps {
     analysis: AnalysisResult;
+    onTimestampClick?: (timestamp: string) => void;
 }
 
 const RatingBar: React.FC<{ label: string; value: number; color: string }> = ({ label, value, color }) => (
@@ -21,7 +22,7 @@ const RatingBar: React.FC<{ label: string; value: number; color: string }> = ({ 
     </div>
 );
 
-const AnalysisView: React.FC<AnalysisViewProps> = ({ analysis }) => {
+const AnalysisView: React.FC<AnalysisViewProps> = ({ analysis, onTimestampClick }) => {
     return (
         <div className="space-y-6 animate-fadeIn">
             {/* Summary Section */}
@@ -203,7 +204,11 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ analysis }) => {
                 </h3>
                 <div className="space-y-3">
                     {analysis.key_moments.map((moment, index) => (
-                        <div key={index} className="flex items-center p-3 bg-white/5 rounded-lg hover:bg-brand-500/20 border border-transparent hover:border-brand-500/50 transition-all cursor-pointer group">
+                        <div
+                            key={index}
+                            onClick={() => onTimestampClick?.(moment.timestamp)}
+                            className="flex items-center p-3 bg-white/5 rounded-lg hover:bg-brand-500/20 border border-transparent hover:border-brand-500/50 transition-all cursor-pointer group"
+                        >
                             <div className="bg-brand-500/20 text-brand-300 px-3 py-1 rounded text-xs font-mono mr-4 group-hover:bg-brand-500 group-hover:text-white transition-colors">
                                 {moment.timestamp}
                             </div>

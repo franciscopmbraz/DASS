@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import Navbar from './Navbar';
@@ -14,6 +14,7 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
     const [session, setSession] = useState<any>(null);
     const [loadingSession, setLoadingSession] = useState(true);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     // Analysis State
     const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -98,6 +99,23 @@ const Dashboard: React.FC = () => {
         setVideoFile(null);
         setVideoUrl(null);
         setAnalysisResult(null);
+    };
+
+    const handleSeek = (timestamp: string) => {
+        if (!videoRef.current) return;
+
+        const parts = timestamp.split(':').map(Number);
+        let seconds = 0;
+        if (parts.length === 3) {
+            seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+        } else if (parts.length === 2) {
+            seconds = parts[0] * 60 + parts[1];
+        } else {
+            seconds = parts[0];
+        }
+
+        videoRef.current.currentTime = seconds;
+        videoRef.current.play();
     };
 
     if (loadingSession) {
@@ -189,6 +207,7 @@ const Dashboard: React.FC = () => {
                                     <div className="glass-card rounded-2xl overflow-hidden border border-white/10 relative group">
                                         {videoUrl ? (
                                             <video
+                                                ref={videoRef}
                                                 src={videoUrl}
                                                 controls
                                                 className="w-full aspect-video bg-black object-contain"
@@ -260,7 +279,10 @@ const Dashboard: React.FC = () => {
                                     )}
 
                                     {analysisResult && (
-                                        <AnalysisView analysis={analysisResult.analysis_result} />
+                                        <AnalysisView
+                                            analysis={analysisResult.analysis_result}
+                                            onTimestampClick={handleSeek}
+                                        />
                                     )}
                                 </div>
 
