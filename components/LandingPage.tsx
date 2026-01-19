@@ -7,6 +7,7 @@ import AiShowcase from './AiShowcase';
 import TechStack from './TechStack';
 import Footer from './Footer';
 import CtaSection from './CtaSection';
+import Pricing from './Pricing';
 import FAQ from './FAQ';
 
 const LandingPage: React.FC = () => {
@@ -46,6 +47,8 @@ const LandingPage: React.FC = () => {
           <div className="absolute inset-0 bg-brand-900/10 z-0"></div>
           <CtaSection />
         </section>
+
+        <Pricing />
 
         <FAQ />
       </main>
