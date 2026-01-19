@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Message } from '../types';
 import { Send, Bot, User as UserIcon, Loader2 } from 'lucide-react';
 import { geminiService } from '../services/geminiService';
@@ -129,7 +130,24 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ initialMessage, analysisId }) =
                                 {msg.role === 'user' ? <UserIcon size={14} /> : <Bot size={14} className="text-brand-400" />}
                             </div>
                             <div className="leading-relaxed text-sm">
-                                {msg.content}
+                                {msg.role === 'model' ? (
+                                    <ReactMarkdown
+                                        components={{
+                                            strong: ({ node, ...props }) => <span className="font-bold text-brand-300" {...props} />,
+                                            ul: ({ node, ...props }) => <ul className="list-disc pl-4 space-y-1 my-1" {...props} />,
+                                            ol: ({ node, ...props }) => <ol className="list-decimal pl-4 space-y-1 my-1" {...props} />,
+                                            li: ({ node, ...props }) => <li className="mb-0.5" {...props} />,
+                                            p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                            h1: ({ node, ...props }) => <h1 className="text-lg font-bold mb-2 text-white" {...props} />,
+                                            h2: ({ node, ...props }) => <h2 className="text-base font-bold mb-1 text-white" {...props} />,
+                                            h3: ({ node, ...props }) => <h3 className="text-sm font-bold mb-1 text-white" {...props} />,
+                                        }}
+                                    >
+                                        {msg.content}
+                                    </ReactMarkdown>
+                                ) : (
+                                    msg.content
+                                )}
                             </div>
                         </div>
                     </div>

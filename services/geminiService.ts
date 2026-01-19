@@ -202,26 +202,35 @@ export const geminiService = {
         }
 
         try {
-            // Get the model instance first
-            // Get the model instance first
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-            // Start the chat session
-            // History must start with a user role. Find the first user message.
+            // History processing
             const firstUserIndex = history.findIndex(h => h.role === 'user');
             const sanitizedHistory = firstUserIndex !== -1 ? history.slice(firstUserIndex) : [];
+            const historyParts = sanitizedHistory.map(h => ({
+                role: h.role === 'user' ? 'user' : 'model',
+                parts: [{ text: h.content }]
+            }));
 
-            const chat = model.startChat({
-                history: sanitizedHistory.map(h => ({
-                    role: h.role === 'user' ? 'user' : 'model',
-                    parts: [{ text: h.content }]
-                }))
-            });
+            try {
+                // Attempt 1: gemini-2.5-flash
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                const chat = model.startChat({ history: historyParts });
+                const result = await chat.sendMessage(message);
+                const response = await result.response;
+                return response.text();
+            } catch (error: any) {
+                // Check for 503 or overload errors
+                if (error.message?.includes('503') || error.message?.includes('overloaded') || error.message?.includes('capacity')) {
+                    console.warn("Gemini 2.5 Flash overloaded (503). Falling back to gemini-2.5-flash-lite...");
 
-            // Send the message
-            const result = await chat.sendMessage(message);
-            const response = await result.response;
-            return response.text();
+                    // Attempt 2: Fallback to gemini-2.5-flash-lite
+                    const modelLite = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+                    const chatLite = modelLite.startChat({ history: historyParts });
+                    const resultLite = await chatLite.sendMessage(message);
+                    const responseLite = await resultLite.response;
+                    return responseLite.text();
+                }
+                throw error; // Re-throw if not a 503 to be caught by outer block
+            }
 
         } catch (error) {
             console.error("Chat error:", error);

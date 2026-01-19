@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Analysis } from '../types';
-import { fetchUserAnalyses } from '../services/analysisService';
-import { Play, Calendar, ChevronRight } from 'lucide-react';
+import { Play, Calendar, ChevronRight, Trash2 } from 'lucide-react';
+import { fetchUserAnalyses, deleteAnalysis } from '../services/analysisService';
+import ConfirmationModal from './ConfirmationModal';
 
 interface AnalysisHistorySidebarProps {
     onSelectAnalysis: (analysis: Analysis) => void;
@@ -11,6 +12,9 @@ interface AnalysisHistorySidebarProps {
 export const AnalysisHistorySidebar: React.FC<AnalysisHistorySidebarProps> = ({ onSelectAnalysis, currentAnalysisId }) => {
     const [analyses, setAnalyses] = useState<Analysis[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [analysisToDelete, setAnalysisToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         loadHistory();
@@ -24,6 +28,32 @@ export const AnalysisHistorySidebar: React.FC<AnalysisHistorySidebarProps> = ({ 
             console.error("Failed to load history:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        setAnalysisToDelete(id);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!analysisToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await deleteAnalysis(analysisToDelete);
+            setAnalyses(prev => prev.filter(a => a.id !== analysisToDelete));
+            if (currentAnalysisId === analysisToDelete) {
+                onSelectAnalysis(null as any); // Deselect if current
+            }
+            setShowDeleteModal(false);
+            setAnalysisToDelete(null);
+        } catch (error) {
+            console.error("Failed to delete analysis:", error);
+            alert("Failed to delete analysis. Please try again.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -63,10 +93,19 @@ export const AnalysisHistorySidebar: React.FC<AnalysisHistorySidebarProps> = ({ 
                                 >
                                     {analysis.game.split(' ')[0]}
                                 </span>
-                                <span className="text-xs text-slate-500 flex items-center">
-                                    <Calendar size={10} className="mr-1" />
-                                    {formatDate(analysis.created_at)}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-slate-500 flex items-center">
+                                        <Calendar size={10} className="mr-1" />
+                                        {formatDate(analysis.created_at)}
+                                    </span>
+                                    <button
+                                        onClick={(e) => handleDeleteClick(e, analysis.id)}
+                                        className="p-1.5 rounded-md text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                        title="Delete Analysis"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
                             </div>
 
                             <h3 className="text-sm font-semibold text-white mb-1 line-clamp-1 group-hover:text-brand-400 transition-colors">
@@ -92,6 +131,16 @@ export const AnalysisHistorySidebar: React.FC<AnalysisHistorySidebarProps> = ({ 
                     New Analysis
                 </button>
             </div>
+
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={confirmDelete}
+                title="Delete Analysis"
+                message="Are you sure you want to delete this analysis? This action cannot be undone."
+                confirmText="Delete"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };
