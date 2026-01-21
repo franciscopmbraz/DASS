@@ -4,7 +4,7 @@ import { Play, ArrowRight, Crosshair } from 'lucide-react';
 
 const Hero: React.FC = () => {
     return (
-        <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        <div className="relative min-h-screen flex items-center justify-center overflow-hidden pt-40">
             {/* Background Elements */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>

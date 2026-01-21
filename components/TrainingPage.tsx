@@ -66,7 +66,7 @@ const TrainingPage: React.FC = () => {
 
             <Navbar isScrolled={isScrolled} />
 
-            <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+            <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-40 pb-20">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 border-b border-white/5 pb-8">
                     <div>

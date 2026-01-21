@@ -134,7 +134,7 @@ const Dashboard: React.FC = () => {
         <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-brand-500/30">
             <Navbar isScrolled={isScrolled} />
 
-            <div className="flex pt-16 h-screen"> {/* Adjusted for fixed navbar */}
+            <div className="flex pt-32 h-screen"> {/* Adjusted for fixed navbar */}
                 <AnalysisHistorySidebar
                     onSelectAnalysis={(analysis) => {
                         setAnalysisResult(analysis);

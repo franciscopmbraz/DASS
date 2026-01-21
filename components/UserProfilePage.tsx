@@ -206,7 +206,7 @@ const UserProfilePage: React.FC = () => {
     }
 
     return (
-        <div className="relative min-h-screen flex text-white overflow-hidden pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="relative min-h-screen flex text-white overflow-hidden pt-40 pb-20 px-4 sm:px-6 lg:px-8">
             {/* Background Elements (copied from Hero.tsx for theme consistency) */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/valorant/1920/1080')] bg-cover bg-center opacity-20 blur-sm mix-blend-overlay fixed"></div>
